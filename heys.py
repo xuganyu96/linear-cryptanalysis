@@ -4,18 +4,26 @@ from __future__ import annotations
 import unittest
 
 
-def basedecomp(n: int, base: int, showzero: bool = False):
+def basedecomp(n: int, base: int, showzero: bool = False, width: int = 0):
     """Decompose n into a sequence of mantissa and exponents, where exponents are powers of base
     and mantissa is in the range(0, base)
     """
     power = 1
+    width_used = 0
 
     while n != 0:
         remainder = n % base
         if remainder > 0 or showzero:
             yield (remainder, power)
+            width_used += 1
         n = n // base
         power = power * base
+
+    if width > 0 and showzero:
+        while width_used < width:
+            yield (0, power)
+            power *= base
+            width_used += 1
 
 
 def find_key(lookup: dict, val, default):
@@ -44,14 +52,14 @@ class Block:
     def substitute(self, lookup: dict[int, int]) -> Block:
         """Perform an S-box substitution using basedecomp and base-16 lookup table"""
         newval = 0
-        for r, e in basedecomp(self.val, 16, True):  # TODO: remove magic number
+        for r, e in basedecomp(self.val, 16, True, 4):  # TODO: remove magic number
             newval += lookup.get(r, r) * e
         return Block(newval)
 
     def invert_substitute(self, lookup: dict[int, int]) -> Block:
         """Perform the inverse of the S-box substitution"""
         newval = 0
-        for r, e in basedecomp(self.val, 16, True):
+        for r, e in basedecomp(self.val, 16, True, 4):
             newval += find_key(lookup, r, r) * e
         return Block(newval)
 
@@ -165,8 +173,8 @@ class TestBaseDecomp(unittest.TestCase):
             Block(0b0100010001000100),
         )
 
-    @unittest.expectedFailure
     def test_invert_substitution(self):
+        # Test invert by showing that inverting the substitute is identity
         for val in range(0x0000, 0xFFFF + 1):
             block = Block(val)
             self.assertEqual(
@@ -175,6 +183,7 @@ class TestBaseDecomp(unittest.TestCase):
             )
 
     def test_invert_permutation(self):
+        # Test invert by showing that inverting the permute is identity
         for val in range(0x0000, 0xFFFF + 1):
             block = Block(val)
             self.assertEqual(
