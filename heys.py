@@ -149,6 +149,22 @@ class HeysCipher:
 
         return v4 ^ self.round_keys[4]
 
+    def decrypt(self, ciphertext: Block) -> Block:
+        pt = ciphertext ^ self.round_keys[4]
+        pt = pt.invert_substitute(self.SBOX)
+        pt = pt ^ self.round_keys[3]
+        pt = pt.invert_permute(self.PERMUTATION)
+        pt = pt.invert_substitute(self.SBOX)
+        pt = pt ^ self.round_keys[2]
+        pt = pt.invert_permute(self.PERMUTATION)
+        pt = pt.invert_substitute(self.SBOX)
+        pt = pt ^ self.round_keys[1]
+        pt = pt.invert_permute(self.PERMUTATION)
+        pt = pt.invert_substitute(self.SBOX)
+        pt = pt ^ self.round_keys[0]
+
+        return pt
+
 
 class TestBaseDecomp(unittest.TestCase):
     def test_basedecomp(self):
@@ -196,3 +212,9 @@ class TestBaseDecomp(unittest.TestCase):
     def test_xor(self):
         block = Block(0b1111000000000000)
         self.assertEqual(block ^ 0b0000111111111111, Block(0xFFFF))
+
+    def test_correctness(self):
+        cipher = HeysCipher([1, 2, 3, 4, 5])
+        for val in range(0x0000, 0xFFFF + 1):
+            block = Block(val)
+            self.assertEqual(cipher.decrypt(cipher.encrypt(block)), block)
