@@ -27,6 +27,10 @@ def basedecomp(n: int, base: int, showzero: bool = False, width: int = 0):
 
 
 def find_key(lookup: dict, val, default):
+    """Given a dictionary, find the first key whose value matches the input
+    value, unless no such key exists, in which case the input default is
+    returned
+    """
     for k, v in lookup.items():
         if v == val:
             return k
@@ -52,7 +56,9 @@ class Block:
     def substitute(self, lookup: dict[int, int]) -> Block:
         """Perform an S-box substitution using basedecomp and base-16 lookup table"""
         newval = 0
-        for r, e in basedecomp(self.val, 16, True, 4):  # TODO: remove magic number
+        for r, e in basedecomp(
+            self.val, 16, True, 4
+        ):  # TODO: remove magic number
             newval += lookup.get(r, r) * e
         return Block(newval)
 
@@ -86,6 +92,20 @@ class Block:
                 raise OverflowError("Can only XOR with u16 integer")
             return Block(self.val ^ other)
         raise TypeError("XOR with Block not defined")
+
+    def get_bit_1base(self, loc: int) -> int:
+        """Get the bit at the specified location as either 1 or 0.
+
+        loc follows big-endianness and starts at 1
+        """
+        if not (1 <= loc <= 16):
+            raise IndexError("1-based bit loc must be between 1 and 16")
+        # Left shift 1 by the appropriate number of bits and do a bit-wise AND;
+        # if the result is 0, return 0, else return 1
+        mask = 1 << (16 - loc)
+        bit = self.val & mask
+
+        return 0 if bit == 0 else 1
 
 
 class HeysCipher:
@@ -165,6 +185,9 @@ class HeysCipher:
 
         return pt
 
+    def check_linear_approx(self, plaintext: Block, ciphertext: Block) -> bool:
+        """ """
+
 
 class TestBaseDecomp(unittest.TestCase):
     def test_basedecomp(self):
@@ -194,7 +217,9 @@ class TestBaseDecomp(unittest.TestCase):
         for val in range(0x0000, 0xFFFF + 1):
             block = Block(val)
             self.assertEqual(
-                block.substitute(HeysCipher.SBOX).invert_substitute(HeysCipher.SBOX),
+                block.substitute(HeysCipher.SBOX).invert_substitute(
+                    HeysCipher.SBOX
+                ),
                 block,
             )
 
@@ -218,3 +243,8 @@ class TestBaseDecomp(unittest.TestCase):
         for val in range(0x0000, 0xFFFF + 1):
             block = Block(val)
             self.assertEqual(cipher.decrypt(cipher.encrypt(block)), block)
+
+    def test_get_bit(self):
+        block = Block(0b1010101010101010)
+        for loc in range(1, 16 + 1):
+            self.assertEqual(block.get_bit_1base(loc), loc % 2)
