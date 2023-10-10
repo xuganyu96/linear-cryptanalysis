@@ -1,3 +1,4 @@
+from typing import Callable
 from .heys import Block, HeysCipher
 
 
@@ -22,7 +23,8 @@ def check_sec34_linear_approx(pt: Block, ct: Block, cipher: HeysCipher) -> bool:
     U[4,6] + U[4,8] + U[4,14] + U[4,16] + P[5] + P[7] + P[8] == 0 (mod 2)
 
     This relationship is stated in Heys' paper (section 3.4)
-    https://www.engr.mun.ca/~howard/PAPERS/ldc_tutorial.pdf
+    https://www.engr.mun.ca/~howard/PAPERS/ldc_tutorial.pdf, and the expected
+    bias is 1/32
     """
     U4 = ct ^ cipher.round_keys[4]
     U4 = U4.invert_substitute(cipher.SBOX)
@@ -39,52 +41,22 @@ def check_sec34_linear_approx(pt: Block, ct: Block, cipher: HeysCipher) -> bool:
     return binsum % 2 == 0
 
 
-def get_sec34_bias(
-    pts: list[Block], cts: list[Block], guess: HeysCipher
+def get_bias(
+    plaintexts: list[Block],
+    ciphertexts: list[Block],
+    guess: HeysCipher,
+    check: Callable[..., bool],
 ) -> float:
-    n_pairs = len(pts)
-    bias = abs(
-        sum(
-            [
-                check_sec34_linear_approx(pts[i], cts[i], guess)
-                for i in range(n_pairs)
-            ]
-        )
-        / n_pairs
-        - 0.5
-    )
-    return bias
+    """Given list of pairs, a guess at the key, and some linear relationship, 
+    compute the bias.
 
-def check_partd_linear_approx(pt: Block, ct: Block, cipher: HeysCipher) -> bool:
-    """Given a pair of known PT-CT and a cipher, return True iff the following
-    linear relationship holds:
-
-    U[4,2] + U[4,6] + U[4,10] + U[4,14] + P[1] + P[4] + P[9] + P[12] = 0
-
-    This relationship is derived in part (d) of assignment 2, problem 1
+    get_bias(plaintexts, ciphertexts, guess, check_sec34_linear_approx)
     """
-    U4 = (ct ^ cipher.round_keys[4]).invert_substitute(cipher.SBOX)
-
-    binsum = (
-        U4.get_bit_1base(2)
-        + U4.get_bit_1base(6)
-        + U4.get_bit_1base(10)
-        + U4.get_bit_1base(14)
-        + pt.get_bit_1base(1)
-        + pt.get_bit_1base(4)
-        + pt.get_bit_1base(9)
-        + pt.get_bit_1base(12)
-    )
-    return binsum % 2 == 0
-
-def get_partd_bias(
-    pts: list[Block], cts: list[Block], guess: HeysCipher
-) -> float:
-    n_pairs = len(pts)
+    n_pairs = len(plaintexts)
     bias = abs(
         sum(
             [
-                check_partd_linear_approx(pts[i], cts[i], guess)
+                check(plaintexts[i], ciphertexts[i], guess)
                 for i in range(n_pairs)
             ]
         )
