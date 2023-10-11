@@ -10,12 +10,8 @@ fn read_inputs(path: &str) -> Vec<Block> {
 }
 
 fn main() {
-    let plaintexts = read_inputs(
-        "./inputs/a2q1plaintexts.txt",
-    );
-    let ciphertexts = read_inputs(
-        "./inputs/a2q1ciphertexts.txt",
-    );
+    let plaintexts = read_inputs("./inputs/a2q1plaintexts.txt");
+    let ciphertexts = read_inputs("./inputs/a2q1ciphertexts.txt");
     let rankings = heys::brute_force_k5(
         &plaintexts,
         &ciphertexts,

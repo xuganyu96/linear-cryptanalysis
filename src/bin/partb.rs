@@ -1,4 +1,4 @@
-use cryptanalysis::heys::{HeysCipher, Block};
+use cryptanalysis::heys::{Block, HeysCipher};
 use std::fs;
 
 fn read_inputs(path: &str) -> Vec<Block> {
@@ -10,12 +10,8 @@ fn read_inputs(path: &str) -> Vec<Block> {
 }
 
 fn main() {
-    let plaintexts = read_inputs(
-        "./inputs/a2q1plaintexts.txt",
-    );
-    let ciphertexts = read_inputs(
-        "./inputs/a2q1ciphertexts.txt",
-    );
+    let plaintexts = read_inputs("./inputs/a2q1plaintexts.txt");
+    let ciphertexts = read_inputs("./inputs/a2q1ciphertexts.txt");
 
     let mut rankings: Vec<(f64, u16)> = vec![];
     for bits_5_to_8 in 0b0000u16..=0b1111 {
@@ -32,8 +28,7 @@ fn main() {
         let (bias2, _) = elem2;
         return bias2.partial_cmp(bias1).unwrap();
     });
-    rankings.iter().take(5)
-        .for_each(|(bias, round_key)| {
-            println!("K5 candidate: 0x{round_key:04x}, observed bias: {bias:.6}");
-        });
+    rankings.iter().take(5).for_each(|(bias, round_key)| {
+        println!("K5 candidate: 0x{round_key:04x}, observed bias: {bias:.6}");
+    });
 }
