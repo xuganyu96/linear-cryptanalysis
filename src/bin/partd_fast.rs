@@ -1,5 +1,6 @@
-use std::fs;
+//! Part (d), but fast with reduced overhead
 use std::error::Error;
+use std::fs;
 
 type Result<T> = core::result::Result<T, Box<dyn Error>>;
 
@@ -58,7 +59,7 @@ struct Block {
 
 impl Block {
     fn new(val: u16) -> Self {
-        return Self {val };
+        return Self { val };
     }
 
     fn from_binstr(binstr: &str) -> Result<Self> {
@@ -100,11 +101,7 @@ impl Block {
     }
 }
 
-fn check_linear_approx(
-    pt: &Block,
-    ct: &Block,
-    key: u16
-) -> u16 {
+fn check_linear_approx(pt: &Block, ct: &Block, key: u16) -> u16 {
     let u4 = ct.mix_key(key);
     let u4 = u4.substitute(&SBOX_INVERT).unwrap();
 
@@ -120,7 +117,9 @@ fn check_linear_approx(
 }
 
 fn compute_bias(plaintexts: &[Block], ciphertexts: &[Block], key: u16) -> f64 {
-    let count = plaintexts.iter().zip(ciphertexts.iter())
+    let count = plaintexts
+        .iter()
+        .zip(ciphertexts.iter())
         .map(|(pt, ct)| check_linear_approx(pt, ct, key))
         .sum::<u16>();
     let prob = (count as f64) / (plaintexts.len() as f64);
@@ -131,25 +130,20 @@ fn compute_bias(plaintexts: &[Block], ciphertexts: &[Block], key: u16) -> f64 {
 }
 
 fn main() {
-    let plaintexts = fs::read_to_string(
-        "/Users/ganyuxu/opensource/waterloo-cryptography/co687/inputs/a2q1plaintexts.txt"
-    ).unwrap().lines()
+    let plaintexts = fs::read_to_string("./inputs/a2q1plaintexts.txt")
+        .unwrap()
+        .lines()
         .map(|line| Block::from_binstr(line).unwrap())
         .collect::<Vec<Block>>();
-    let ciphertexts = fs::read_to_string(
-        "/Users/ganyuxu/opensource/waterloo-cryptography/co687/inputs/a2q1ciphertexts.txt"
-    ).unwrap().lines()
+    let ciphertexts = fs::read_to_string("./inputs/a2q1ciphertexts.txt")
+        .unwrap()
+        .lines()
         .map(|line| Block::from_binstr(line).unwrap())
         .collect::<Vec<Block>>();
 
     let mut guesses: Vec<(f64, u16)> = vec![];
     for round_key in 0u16..=0xffffu16 {
-        let bias = compute_bias(
-            &plaintexts,
-            &ciphertexts,
-            round_key,
-        );
-        // println!("{round_key}: {bias}");
+        let bias = compute_bias(&plaintexts, &ciphertexts, round_key);
         guesses.push((bias, round_key));
     }
 
@@ -159,8 +153,7 @@ fn main() {
         return bias2.partial_cmp(bias1).unwrap();
     });
 
-    guesses.iter().take(5)
-        .for_each(|(bias, round_key)| {
-            println!("round key: {round_key:16b}, bias: {bias:08}");
-        });
+    guesses.iter().take(5).for_each(|(bias, round_key)| {
+        println!("round key: {round_key:04x}, bias: {bias:08}");
+    });
 }
