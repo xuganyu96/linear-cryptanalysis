@@ -154,6 +154,6 @@ fn main() {
     });
 
     guesses.iter().take(5).for_each(|(bias, round_key)| {
-        println!("round key: {round_key:04x}, bias: {bias:08}");
+        println!("K5 candidate: 0x{round_key:04x}, observed bias: {bias:.6}");
     });
 }
